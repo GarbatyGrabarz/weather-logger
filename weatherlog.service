@@ -1,0 +1,14 @@
+[Unit]
+Description=Weather logger
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 -u weather_logger.py
+WorkingDirectory=/home/pi/
+StandardOutput=inherit
+StandardError=inherit
+Restart=on-failure
+User=pi
+
+[Install]
+WantedBy=multi-user.target
