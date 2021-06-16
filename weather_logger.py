@@ -92,7 +92,7 @@ class OpenWeather(object):
             self.forcast.append([t, data_dict])
 
 
-delay = 5
+delay = 300
 db_weather = IFDB('weather', 'grafana', 'raspberrypi', 'overseer')
 db_forcast = IFDB('forcast', 'grafana', 'raspberrypi', 'overseer')
 weather = OpenWeather()
