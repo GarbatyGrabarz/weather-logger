@@ -17,7 +17,6 @@ class IFDB(object):
     def add_points(self, time_data_list):
         self._connect()
         for element in time_data_list:
-            print(element)
             self._format_and_write(element[0], element[1])
         self.client.close()
 
