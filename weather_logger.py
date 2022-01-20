@@ -1,6 +1,8 @@
 import pytz
 import requests
 import time
+import datetime
+import os
 from influxdb import InfluxDBClient
 
 
@@ -100,7 +102,9 @@ reference = time.time()
 while True:
 
     if (time.time() - reference) <= delay:
-        pass
+        now = datetime.datetime.now()
+        if now.hour == 4 and now.minute == 0 and now.day % 3 == 0:
+            os.system('sudo reboot')
     else:
         weather.update()
         weather.pack_data()
