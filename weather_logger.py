@@ -1,62 +1,75 @@
-import pytz
-import requests
 import time
-import datetime
 import os
-from influxdb import InfluxDBClient
+
+import requests  # pip install requests
+from dotenv import load_dotenv  # pip install python-dotenv
+from influxdb import InfluxDBClient  # pip install influxdb
 
 
 class IFDB(object):
-    """This is a wrapper class for uploading data points to InfluxDB"""
+    """Wrapper class for uploading data points to InfluxDB
+    Requires set up database and a user with all privileges.
+    The database should have two measurements for current weather
+    and forecast"""
 
-    def __init__(self, measurement, username, password, database):
-        self.timezone = pytz.timezone('Europe/Stockholm')
+    @classmethod
+    def create_client(cls):
+        USER = os.getenv('INFLUX_USER')
+        PASS = os.getenv('INFLUX_PASSWORD')
+        DATABASE = os.getenv('INFLUX_DATABASE')
+        cls.client = InfluxDBClient(
+            username=USER,
+            password=PASS,
+            database=DATABASE)
+
+    def __init__(self, measurement):
         self.measurement = measurement
-        self.username = username
-        self.password = password
-        self.database = database
 
     def add_points(self, time_data_list):
-        self._connect()
+        """This weird solution for passing data happens because
+        current weather is just a datapoint (with a lot of information in it)
+        wheras forecast is multiple of such points passed in a list
+        This could be probably handled better but it works so..."""
+
         for element in time_data_list:
-            self._format_and_write(element[0], element[1])
+            body = [{
+                "measurement": self.measurement,
+                "time": element[0],  # epoch in ns format
+                "fields": element[1]}]  # data dictionary
+
+            self.client.write_points(body)
         self.client.close()
-
-    def _connect(self):
-        self.client = InfluxDBClient(username=self.username,
-                                     password=self.password,
-                                     database=self.database)
-
-    def _format_and_write(self, time, data_dict):
-        """time must be in epoch in ns format, data_dict comtains names
-        of fields and their values"""
-        body = [{"measurement": self.measurement,
-                 "time": time,
-                 "fields": data_dict}]
-
-        self.client.write_points(body)
 
 
 class OpenWeather(object):
 
     def __init__(self):
         self.now = dict()
-        self.forcast = list()
+        self.forecast = list()
+
+        self.APPID = os.getenv('OPEN_WEATHER_APPID')
+        self.LAT = os.getenv('LATITUDE')
+        self.LON = os.getenv('LONGITUDE')
 
     def update(self):
-        response = requests.get('https://api.openweathermap.org/data/2.5/'
-                                'onecall?'
-                                '&lat=59.36142886509909'
-                                '&lon=18.008168552706497'
-                                '&units=metric'
-                                '&APPID=33f6aa60676a838926b064aca4cadbdd')
-        if len(response.json()) < 5:
-            try:
-                print(f'Error! {response.json()["message"]}')
-            except KeyError:
-                print('Something went wrong but there is no error for it')
+        try:
+            response = requests.get('https://api.openweathermap.org/data/2.5/'
+                                    'onecall?'
+                                    f'&lat={self.LAT}'
+                                    f'&lon={self.LON}'
+                                    '&units=metric'
+                                    f'&APPID={self.APPID}')
+            response.raise_for_status()  # That will raise an HTTPError
+            self.package = response.json()
+            return True
 
-        self.package = response.json()
+        except requests.exceptions.HTTPError as httperr:
+            print(httperr)
+            return False
+
+        except requests.exceptions.RequestException:
+            print('No connection to the Open Weather server')
+            return False
 
     def pack_data(self):
         p = self.package
@@ -90,25 +103,28 @@ class OpenWeather(object):
             data_dict = {'temperature': float(p['hourly'][h]['temp']),
                          'pop': float(p['hourly'][h]['pop'])}
 
-            self.forcast.append([t, data_dict])
+            self.forecast.append([t, data_dict])
 
 
-delay = 600
-db_weather = IFDB('weather', 'grafana', 'raspberrypi', 'overseer')
-db_forcast = IFDB('forcast', 'grafana', 'raspberrypi', 'overseer')
-weather = OpenWeather()
-reference = time.time()
+if __name__ == '__main__':
+    load_dotenv('.env')
+    delay = 600
 
-while True:
+    IFDB.create_client()
+    db_weather = IFDB(os.getenv('MEASUREMENT_NOW'))
+    db_forecast = IFDB(os.getenv('MEASUREMENT_FORECAST'))
 
-    if (time.time() - reference) <= delay:
-        now = datetime.datetime.now()
-        if now.hour == 4 and now.minute == 0 and now.day % 3 == 0:
-            os.system('sudo reboot')
-    else:
-        weather.update()
-        weather.pack_data()
-        db_weather.add_points([[weather.now_dt, weather.now]])
-        db_forcast.add_points(weather.forcast)
-        reference = time.time()
-        print('Point saved')
+    weather = OpenWeather()
+    reference = time.time()
+
+    while True:
+        if (time.time() - reference) > delay:
+            if weather.update():
+                weather.pack_data()
+                db_weather.add_points([[weather.now_dt, weather.now]])
+                db_forecast.add_points(weather.forecast)
+                print(
+                    "Point saved. "
+                    f"Now: {weather.now['temperature']} \u00B0"
+                    f"Feels like: {weather.now['feels_like']} \u00B0")
+            reference = time.time()
