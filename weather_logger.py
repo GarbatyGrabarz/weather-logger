@@ -108,7 +108,6 @@ class OpenWeather(object):
 
 if __name__ == '__main__':
     load_dotenv('.env')
-    delay = 600
 
     IFDB.create_client()
     db_weather = IFDB(os.getenv('MEASUREMENT_NOW'))
@@ -118,13 +117,12 @@ if __name__ == '__main__':
     reference = time.time()
 
     while True:
-        if (time.time() - reference) > delay:
-            if weather.update():
-                weather.pack_data()
-                db_weather.add_points([[weather.now_dt, weather.now]])
-                db_forecast.add_points(weather.forecast)
-                print(
-                    "Point saved. "
-                    f"Now: {weather.now['temperature']} \u00B0"
-                    f"Feels like: {weather.now['feels_like']} \u00B0")
-            reference = time.time()
+        if weather.update():
+            weather.pack_data()
+            db_weather.add_points([[weather.now_dt, weather.now]])
+            db_forecast.add_points(weather.forecast)
+            print(
+                "Point saved. "
+                f"Now: {weather.now['temperature']} \u00B0"
+                f"Feels like: {weather.now['feels_like']} \u00B0")
+        time.sleep(600)
