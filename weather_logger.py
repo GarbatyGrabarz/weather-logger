@@ -123,6 +123,6 @@ if __name__ == '__main__':
             db_forecast.add_points(weather.forecast)
             print(
                 "Point saved. "
-                f"Now: {weather.now['temperature']} \u00B0"
-                f"Feels like: {weather.now['feels_like']} \u00B0")
+                f"Now: {weather.now['temperature']:.0f} \u00B0"
+                f"Feels like: {weather.now['feels_like']:.0f} \u00B0")
         time.sleep(600)
