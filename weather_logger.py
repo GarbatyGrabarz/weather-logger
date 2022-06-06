@@ -85,12 +85,12 @@ class OpenWeather(object):
         self.now['humidity'] = float(p['current']['humidity'])
 
         self.now['uvi'] = float(p['current']['uvi'])
-        self.now['clouds'] = float(p['current']['clouds'])
-        self.now['wind_speed'] = float(p['current']['wind_speed'])
-        self.now['wind_angle'] = float(p['current']['wind_deg'])
+        # self.now['clouds'] = float(p['current']['clouds'])
+        # self.now['wind_speed'] = float(p['current']['wind_speed'])
+        # self.now['wind_angle'] = float(p['current']['wind_deg'])
 
-        self.now['id'] = int(p['current']['weather'][0]['id'])
-        self.now['category'] = p['current']['weather'][0]['main']
+        # self.now['id'] = int(p['current']['weather'][0]['id'])
+        # self.now['category'] = p['current']['weather'][0]['main']
         self.now['description'] = p['current']['weather'][0]['description']
         self.now['icon'] = p['current']['weather'][0]['icon']
 
@@ -101,7 +101,8 @@ class OpenWeather(object):
             t = int(p['hourly'][h]['dt'] * 1e9)
 
             data_dict = {'temperature': float(p['hourly'][h]['temp']),
-                         'pop': float(p['hourly'][h]['pop'])}
+                         'pop': float(p['hourly'][h]['pop']),
+                         'uvi': float(p['hourly'][h]['uvi'])}
 
             self.forecast.append([t, data_dict])
 
