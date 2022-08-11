@@ -1,16 +1,16 @@
 import time
 import os
 
-import requests  # pip install requests
-from dotenv import load_dotenv  # pip install python-dotenv
-from influxdb import InfluxDBClient  # pip install influxdb
+import requests  # https://pypi.org/project/requests/
+from dotenv import load_dotenv  # https://pypi.org/project/python-dotenv/
+from influxdb import InfluxDBClient  # https://pypi.org/project/influxdb/
 
 
 class IFDB(object):
-    """Wrapper class for uploading data points to InfluxDB
+    """ Wrapper class for uploading data points to InfluxDB.
     Requires set up database and a user with all privileges.
-    The database should have two measurements for current weather
-    and forecast"""
+    The database will have two measurements for current weather
+    and forecast """
 
     @classmethod
     def create_client(cls):
@@ -26,10 +26,10 @@ class IFDB(object):
         self.measurement = measurement
 
     def add_points(self, time_data_list):
-        """This weird solution for passing data happens because
+        """ This weird solution for passing data happens because
         current weather is just a datapoint (with a lot of information in it)
         wheras forecast is multiple of such points passed in a list
-        This could be probably handled better but it works so..."""
+        This could be probably handled better but it works so... """
 
         for element in time_data_list:
             body = [{
@@ -42,6 +42,9 @@ class IFDB(object):
 
 
 class OpenWeather(object):
+    """ Wrapper class for getting data from OpenWeather. It uses the OneCall
+    service for given longitude and letitude. API token required. Only some
+    informaion is extracted and passed further """
 
     def __init__(self):
         self.now = dict()
@@ -72,6 +75,14 @@ class OpenWeather(object):
             return False
 
     def pack_data(self):
+        """ This re-packs the data from the response in JSON to slightly
+        different format. I use this to select the weather data I want
+        to save and to have less trouble passing it to the database
+
+        Some code is commented out simply because I have changed by mind.
+        The list of parameters below is not the full range of information
+        you can get from OpenWeather's OneCall """
+
         p = self.package
 
         self.now_dt = int(p['current']['dt'] * 1e9)
