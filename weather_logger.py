@@ -120,7 +120,7 @@ class OpenWeather(object):
 
 if __name__ == '__main__':
     load_dotenv('.env')
-
+    time.sleep(30)
     IFDB.create_client()
     db_weather = IFDB(os.getenv('MEASUREMENT_NOW'))
     db_forecast = IFDB(os.getenv('MEASUREMENT_FORECAST'))
