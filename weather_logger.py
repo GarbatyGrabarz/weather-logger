@@ -6,7 +6,7 @@ from dotenv import load_dotenv  # https://pypi.org/project/python-dotenv/
 from influxdb import InfluxDBClient  # https://pypi.org/project/influxdb/
 
 
-class IFDB(object):
+class IFDB:
     """ Wrapper class for uploading data points to InfluxDB.
     Requires set up database and a user with all privileges.
     The database will have two measurements for current weather
@@ -41,10 +41,10 @@ class IFDB(object):
         self.client.close()
 
 
-class OpenWeather(object):
+class OpenWeather:
     """ Wrapper class for getting data from OpenWeather. It uses the OneCall
     service for given longitude and letitude. API token required. Only some
-    informaion is extracted and passed further """
+    informaion is extracted and passed further"""
 
     def __init__(self):
         self.now = dict()
@@ -56,12 +56,14 @@ class OpenWeather(object):
 
     def update(self):
         try:
-            response = requests.get('https://api.openweathermap.org/data/2.5/'
-                                    'onecall?'
-                                    f'&lat={self.LAT}'
-                                    f'&lon={self.LON}'
-                                    '&units=metric'
-                                    f'&APPID={self.APPID}')
+            response = requests.get(
+                'https://api.openweathermap.org/data/3.0/'
+                'onecall?'
+                f'&lat={self.LAT}'
+                f'&lon={self.LON}'
+                '&units=metric'
+                f'&APPID={self.APPID}'
+            )
             response.raise_for_status()  # That will raise an HTTPError
             self.package = response.json()
             return True
@@ -83,39 +85,43 @@ class OpenWeather(object):
         The list of parameters below is not the full range of information
         you can get from OpenWeather's OneCall """
 
-        p = self.package
+        package = self.package
 
-        self.now_dt = int(p['current']['dt'] * 1e9)
+        self.now_dt = int(package['current']['dt'] * 1e9)
 
-        self.now['latitude'] = float(p['lat'])
-        self.now['longitude'] = float(p['lon'])
+        self.now['latitude'] = float(package['lat'])
+        self.now['longitude'] = float(package['lon'])
 
-        self.now['temperature'] = float(p['current']['temp'])
-        self.now['feels_like'] = float(p['current']['feels_like'])
-        self.now['pressure'] = float(p['current']['pressure'])
-        self.now['humidity'] = float(p['current']['humidity'])
+        self.now['temperature'] = float(package['current']['temp'])
+        self.now['feels_like'] = float(package['current']['feels_like'])
+        self.now['pressure'] = float(package['current']['pressure'])
+        self.now['humidity'] = float(package['current']['humidity'])
 
-        self.now['uvi'] = float(p['current']['uvi'])
-        # self.now['clouds'] = float(p['current']['clouds'])
-        # self.now['wind_speed'] = float(p['current']['wind_speed'])
-        # self.now['wind_angle'] = float(p['current']['wind_deg'])
+        self.now['uvi'] = float(package['current']['uvi'])
 
-        # self.now['id'] = int(p['current']['weather'][0]['id'])
-        # self.now['category'] = p['current']['weather'][0]['main']
-        self.now['description'] = p['current']['weather'][0]['description']
-        self.now['icon'] = p['current']['weather'][0]['icon']
+        # self.now['clouds'] = float(package['current']['clouds'])
+        # self.now['wind_speed'] = float(package['current']['wind_speed'])
+        # self.now['wind_angle'] = float(package['current']['wind_deg'])
 
-        self.now['temp_max'] = float(p['daily'][0]['temp']['max'])
-        self.now['temp_min'] = float(p['daily'][0]['temp']['min'])
+        # self.now['id'] = int(package['current']['weather'][0]['id'])
+        # self.now['category'] = package['current']['weather'][0]['main']
+
+        self.now['description'] = package['current']['weather'][0]['description']
+        self.now['icon'] = package['current']['weather'][0]['icon']
+
+        self.now['temp_max'] = float(package['daily'][0]['temp']['max'])
+        self.now['temp_min'] = float(package['daily'][0]['temp']['min'])
 
         for h in range(48):
-            t = int(p['hourly'][h]['dt'] * 1e9)
+            timestamp = int(package['hourly'][h]['dt'] * 1e9)
 
-            data_dict = {'temperature': float(p['hourly'][h]['temp']),
-                         'pop': float(p['hourly'][h]['pop']),
-                         'uvi': float(p['hourly'][h]['uvi'])}
+            data_dict = {
+                'temperature': float(package['hourly'][h]['temp']),
+                'pop': float(package['hourly'][h]['pop']),
+                'uvi': float(package['hourly'][h]['uvi'])
+            }
 
-            self.forecast.append([t, data_dict])
+            self.forecast.append([timestamp, data_dict])
 
 
 if __name__ == '__main__':
